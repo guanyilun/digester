@@ -3,13 +3,16 @@
 ###
 name: digester-dev
 description: ingest arxiv metadata
-version: 4a49af1407813479e4bb79673f6169fa
+version: 85b6f952d399debcc613c6627343b0f6
 # The work queue that will handle this deployment's runs
 work_queue_name: default
 work_pool_name: default-agent-pool
 tags: []
 parameters: {}
-schedule: null
+schedule:
+  interval: 86400.0
+  anchor_date: '2023-03-29T03:24:25.860000+00:00'
+  timezone: UTC
 is_schedule_active: true
 infra_overrides: {}
 
@@ -48,6 +51,11 @@ parameter_openapi_schema:
       default: astro-ph.CO
       position: 1
       type: string
+    max_results:
+      title: max_results
+      default: 100
+      position: 2
+      type: integer
   required: null
   definitions: null
-timestamp: '2023-03-29T03:23:10.428237+00:00'
+timestamp: '2023-03-29T03:48:39.387035+00:00'

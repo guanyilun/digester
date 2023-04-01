@@ -1,3 +1,4 @@
+import re
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -9,7 +10,7 @@ class Article(Base):
 
     id = Column(String, primary_key=True)
     title = Column(String, nullable=False)
-    submitted_date = Column(DateTime, nullable=False)
+    submitted_date = Column(DateTime, nullable=True)
     category = Column(String, nullable=False)
     abstract = Column(String, nullable=False)
     abstract_digested = Column(Boolean, nullable=False, default=False)
@@ -29,6 +30,16 @@ def create_db(db_url):
     engine = create_engine(db_url)
     Base.metadata.create_all(engine)
     return engine
+
+# utils
+def arxiv_url_to_id_and_ver(url):
+    match = re.search(r'arxiv\.org/abs/(\d+\.\d+)(v\d+)?', url)
+    if match:
+        arxiv_id = match.group(1)
+        version = match.group(2) or 'v1'
+        return arxiv_id, version
+    else:
+        raise ValueError('Invalid arXiv URL')
 
 if __name__ == "__main__":
     # Set up the database

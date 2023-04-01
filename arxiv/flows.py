@@ -1,11 +1,16 @@
 from prefect import flow, get_run_logger
+from typing import Optional
 
 
 @flow(name="arxiv-metadata-ingest")
-def ingest_metadata(db_url: str = "sqlite:////home/yilun.guan/.digester/arxiv/metadata.db", category: str = "astro-ph.CO"):
+def ingest_metadata(
+    db_url: str = "sqlite:////home/yilun.guan/.digester/arxiv/metadata.db",
+    category: str = "astro-ph.CO",
+    max_results: Optional[int] = 100
+    ):
     import arxiv
     from sqlalchemy.orm import sessionmaker
-    from lib import create_db, Article, Author  # Assuming the revised script is saved as arxiv_db.py
+    from lib import create_db, Article, Author, arxiv_url_to_id_and_ver  # Assuming the revised script is saved as arxiv_db.py
 
     logger = get_run_logger()
 
@@ -15,7 +20,7 @@ def ingest_metadata(db_url: str = "sqlite:////home/yilun.guan/.digester/arxiv/me
     # Fetch articles from arXiv
     articles = arxiv.Search(
         query=f"cat:{category}",
-        max_results=50,
+        max_results=max_results,
         sort_by=arxiv.SortCriterion.SubmittedDate
     )
 
@@ -34,11 +39,12 @@ def ingest_metadata(db_url: str = "sqlite:////home/yilun.guan/.digester/arxiv/me
         abstract = result.summary
         authors = [author.name for author in result.authors]
         entry_id = result.entry_id
+        arxiv_id, _ = arxiv_url_to_id_and_ver(result.id)
 
         logger.info(f"Adding article: {entry_id}")
 
         article = Article(
-            id=entry_id,
+            id=arxiv_id,
             title=title,
             submitted_date=submitted_date,
             category=category,
