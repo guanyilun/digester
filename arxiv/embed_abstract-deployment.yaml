@@ -1,0 +1,60 @@
+###
+### A complete description of a Prefect Deployment for flow 'arxiv-abstract-embed'
+###
+name: digester-dev
+description: null
+version: b583c5f419c17fc215f04d672354df9b
+# The work queue that will handle this deployment's runs
+work_queue_name: default
+work_pool_name: null
+tags: []
+parameters: {}
+schedule: null
+is_schedule_active: null
+infra_overrides: {}
+infrastructure:
+  type: process
+  env: {}
+  labels: {}
+  name: null
+  command: null
+  stream_output: true
+  working_dir: null
+  block_type_slug: process
+  _block_type_slug: process
+
+###
+### DO NOT EDIT BELOW THIS LINE
+###
+flow_name: arxiv-abstract-embed
+manifest_path: null
+storage: null
+path: /home/yilun.guan/work/digester/arxiv
+entrypoint: flows.py:embed_abstract
+parameter_openapi_schema:
+  title: Parameters
+  type: object
+  properties:
+    limit:
+      title: limit
+      default: 1000
+      position: 0
+      type: integer
+    embedding_method:
+      title: embedding_method
+      default: huggingface
+      position: 1
+      type: string
+    db_url:
+      title: db_url
+      default: sqlite:////home/yilun.guan/.digester/arxiv/metadata.db
+      position: 2
+      type: string
+    chroma_db_path:
+      title: chroma_db_path
+      default: /home/yilun.guan/.digester/arxiv/chroma/
+      position: 3
+      type: string
+  required: null
+  definitions: null
+timestamp: '2023-04-15T20:27:54.369429+00:00'

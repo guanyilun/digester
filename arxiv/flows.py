@@ -31,17 +31,16 @@ def ingest_metadata(
     new_records = 0
     for result in articles.results():
         # check if article already exists
-        if session.query(Article).filter_by(id=result.entry_id).first():
+        arxiv_id, _ = arxiv_url_to_id_and_ver(result.entry_id)
+        if session.query(Article).filter_by(id=arxiv_id).first():
             continue
         title = result.title
         submitted_date = result.published
         category = "astro-ph.CO"
         abstract = result.summary
         authors = [author.name for author in result.authors]
-        entry_id = result.entry_id
-        arxiv_id, _ = arxiv_url_to_id_and_ver(result.id)
 
-        logger.info(f"Adding article: {entry_id}")
+        logger.info(f"Adding article: {arxiv_id}")
 
         article = Article(
             id=arxiv_id,
@@ -62,5 +61,66 @@ def ingest_metadata(
     session.commit()
     logger.info(f"Added {new_records} new records to the database.")
 
+
+@flow(name="arxiv-abstract-embed")
+def embed_abstract(
+    limit: int = 1000,
+    embedding_method: str = "huggingface",
+    db_url: str = "sqlite:////home/yilun.guan/.digester/arxiv/metadata.db",
+    chroma_db_path: str = "/home/yilun.guan/.digester/arxiv/chroma/"
+) -> str:
+    from langchain.vectorstores import Chroma
+    from sqlalchemy.orm import sessionmaker
+    from lib import create_db, Article
+
+    logger = get_run_logger()
+
+    # get abstract from database
+    engine = create_db(db_url)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    # get first `limit` articles that have not been digested
+    articles = session.query(Article).filter_by(abstract_digested=False).limit(limit).all()
+
+    if len(articles) == 0:
+        logger.info("No new articles to digest")
+        return
+
+    # get embeddings
+    if embedding_method == "huggingface":
+        from langchain.embeddings import HuggingFaceEmbeddings
+        embeddings = HuggingFaceEmbeddings()
+    elif embedding_method == "openai":
+        from langchain.embeddings.openai import OpenAIEmbeddings
+        embeddings = OpenAIEmbeddings()
+    else:
+        raise ValueError(f"Unknown algorithm: {embedding_method}")
+    logger.info("Using embedding method: " + embedding_method)
+    
+    # separate collection for different algorithmm
+    collection_name = f"arxiv-abstract-{embedding_method}"
+    logger.info("Using collection name: " + collection_name)
+    vectordb = Chroma(
+        collection_name=collection_name, 
+        embedding_function=embeddings,
+        persist_directory=chroma_db_path
+    )
+
+    # build a list of ab    stracts and associated ids and metadata
+    abstracts = [article.abstract for article in articles]
+    ids = [article.id for article in articles]
+
+    for id_, abs_ in zip(ids, abstracts):
+        vectordb.add_texts(texts=[abs_], ids=id_)
+        logger.debug("Embedded:", id_)
+
+    # update database
+    for article in articles:
+        article.abstract_digested = True
+    session.commit()
+    
+    logger.info(f"Embedded {len(ids)} new abstracts to the database")
+
 if __name__ == "__main__":
-    ingest_metadata()
+    embed_abstract(limit=100)
