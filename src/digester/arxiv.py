@@ -31,7 +31,10 @@ def create_db(db_url):
     Base.metadata.create_all(engine)
     return engine
 
-# utils
+#########
+# utils #
+#########
+
 def arxiv_url_to_id_and_ver(url):
     match = re.search(r'arxiv\.org/abs/(\d+\.\d+)(v\d+)?', url)
     if match:
@@ -40,8 +43,3 @@ def arxiv_url_to_id_and_ver(url):
         return arxiv_id, version
     else:
         raise ValueError('Invalid arXiv URL')
-
-if __name__ == "__main__":
-    # Set up the database
-    db_url = "sqlite:///metadata.db"
-    engine = create_db(db_url)
